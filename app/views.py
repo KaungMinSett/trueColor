@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.http import HttpResponseRedirect
 from app.services import *
-from app.api import *
+from app.analysis import *
 from django.contrib import messages
 
 from mycolor.models import Image
@@ -15,13 +15,30 @@ def getColor(request):
     if request.method == "POST":
         image = request.FILES["image"]
     
-        season = classify_skin_tone(image) # call to openai api
+        season = classify_skin_tone(image) # call to api
+        print(season)
+
+        if season == "No face detected.":
+            return render(request, 'app/getColor.html', {
+                'error_message': "No face detected in the image. Please try again with a different image."
+            })
+
+        if season == "Neutral":
+
+            return render(request, 'app/getColor.html', {
+
+                'error_message': f"Unable to determine a precise color season. The analysis returned: {season} try with different photo",
+                
+            })
+
+
         Image.objects.create(image=image, user=request.user, season=season) # save image to database
 
        
         image = Image.objects.last()
 
         season_name, personal_colors, lipstick_colors = get_season_and_colors(season) # return colors for season
+
         seasonInfo = SeasonInfo.objects.get(season__name=season_name) # get season info
     
       
